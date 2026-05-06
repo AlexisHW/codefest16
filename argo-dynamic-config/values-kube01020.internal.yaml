@@ -1,0 +1,41 @@
+dns_suffix: "app.kube01020.internal"
+kube_name: "kube01020"
+environment_name: "test"
+company: "fest"
+department: "development"
+regcred_vault_path: "fest/development/shared/dynamic/harbor"
+docker_registry_host: "docker.fest.io"
+istio:
+  enabled: true
+argocd_url: https://argocd-kube01020.codefest.example
+
+dynamic_stands:
+  gitlab_api_url: https://codefest.example/
+  gitlab_project_id: '10010'
+  appGitRepo: 'https://codefest.example/cicd/helm.git'
+  eso:
+    vaultUrl: https://vault.codefest.example
+    mountPath: kubernetes_kube01020
+  extraCharts:
+    postgres:
+      extraValuesFiles:
+        - values-kube01020.yaml
+    kafka_ui:
+      extraValuesFiles:
+        - values-kube01020.yaml
+    pgop:
+      extraValuesFiles:
+        - values-kube01020.yaml
+    dfdbop:
+      extraValuesFiles:
+        - values-kube01020.yaml
+
+fest_dynamic_perf_products:
+  product1: {}
+  product2: {}
+  product3: {}
+
+patroni_list:
+  - patroni03
+  - patroni06
+  - patroni07

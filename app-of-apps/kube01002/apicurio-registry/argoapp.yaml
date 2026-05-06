@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apicurio-registry
+  namespace: argocd
+spec:
+  project: infrastructure
+  source:
+    repoURL: https://codefest.example/cd-tools/helm-infra.git
+    path: apicurio-registry-ecom
+    targetRevision: master
+    helm:
+      valueFiles:
+        - values.yaml
+        - production/p01/values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: apicurio-registry
+  syncPolicy:
+    automated:
+      selfHeal: true

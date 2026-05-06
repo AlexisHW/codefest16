@@ -1,0 +1,34 @@
+dynamic_stands:
+  tokenRef:
+    secretName: gitlab-token-for-dynamic
+    key: token
+  requeueAfterSeconds: 600
+  extraCharts:
+    common:
+      repoURL: https://codefest.example/cicd/templates/helm-dynamic.git
+      targetRevision: 'master'
+    postgres:
+      repoURL: https://codefest.example/cicd/templates/helm-postgres.git
+      targetRevision: 'master'
+    postgres_perf:
+      repoURL: https://codefest.example/cicd/templates/helm-postgres-perf.git
+      targetRevision: 'master'
+    kafka:
+      repoURL: https://codefest.example/cicd/templates/helm-kafka-cluster.git
+      targetRevision: 'release/1.20-v0.49.1'
+    kafka_ui:
+      repoURL: https://codefest.example/cicd/templates/helm-kafka-ui.git
+      targetRevision: 'master'
+    pgop:
+      repoURL: https://codefest.example/cicd/templates/helm-postgres-operator-dyn.git
+      targetRevision: 'master'
+    dfdbop:
+      repoURL: https://codefest.example/cicd/templates/helm-dragonflydb-operator-dyn.git
+      targetRevision: 'master'
+
+fest_dynamic_products: {}
+
+fest_dynamic_perf_products: {}
+
+istio:
+  enabled: false

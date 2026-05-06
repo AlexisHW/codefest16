@@ -1,0 +1,6 @@
+apiVersion: v2
+name: argo-dynamic-config
+description: A Helm chart to configure dynamic stands
+type: application
+version: 1.0.0
+appVersion: "1.0.0"

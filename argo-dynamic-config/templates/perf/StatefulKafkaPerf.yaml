@@ -1,0 +1,61 @@
+{{- if not (empty .Values.fest_dynamic_perf_products) }}
+{{- $values := .Values -}}
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: dynamic-stateful-kafka-perf
+  labels:
+    dynamic: "true"
+    perf: "true"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+  - pullRequest:
+      gitlab:
+        project: '{{ $.Values.dynamic_stands.gitlab_project_id }}'
+        api: '{{ $.Values.dynamic_stands.gitlab_api_url }}'
+        tokenRef:
+          secretName: '{{ $.Values.dynamic_stands.tokenRef.secretName }}'
+          key: '{{ $.Values.dynamic_stands.tokenRef.key }}'
+        labels:
+        - stateful/kafka-perf
+        pullRequestState: opened
+      requeueAfterSeconds: {{ $.Values.dynamic_stands.requeueAfterSeconds }}
+      filters:
+        - branchMatch: "^perf/.*"
+  template:
+    metadata:
+      name: 'stateful-{{ `{{ regexReplaceAll "/|_|\\." (.branch | substr 5 20 | lower) "-" | trimSuffix "-" }}` }}-kafka-perf'
+      labels:
+        branch: '{{ `{{ .branch_slug }}` }}'
+        dynamic: "true"
+        perf: "true"
+        type: "kafka"
+    spec:
+      sources:
+        - repoURL: '{{ $.Values.dynamic_stands.extraCharts.kafka.repoURL }}'
+          path: .
+          targetRevision: '{{ $.Values.dynamic_stands.extraCharts.kafka.targetRevision }}'
+          helm:
+            valuesObject:
+              dnsSuffix: '{{ $.Values.dns_suffix }}'
+              epic: '{{ `-{{ regexReplaceAll "/|_|\\." (.branch | substr 4 19 | lower) "-" | trimSuffix "-" }}` }}-perf'
+            valueFiles:
+              {{- range $.Values.dynamic_stands.extraCharts.kafka.extraValuesFiles }}
+              - {{ . }}
+              {{- end }}
+              - '{{ `$helmValues/stateful/kafka/dyn.yaml` }}'
+        - repoURL: '{{ $.Values.dynamic_stands.appGitRepo }}'
+          targetRevision: '{{ `{{ .branch }}` }}'
+          ref: helmValues
+      project: dynamic
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'stateful-{{ `{{ regexReplaceAll "/|_|\\." (.branch | substr 5 20 | lower) "-" | trimSuffix "-" }}` }}-perf'
+      syncPolicy:
+        automated:
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+{{- end }}

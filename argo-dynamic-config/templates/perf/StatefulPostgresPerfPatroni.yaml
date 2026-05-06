@@ -1,0 +1,60 @@
+{{- if not (empty .Values.patroni_list) }}
+{{- $values := .Values -}}
+{{- range $k, $v := .Values.patroni_list }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: dynamic-stateful-postgres-perf-{{ $v }}
+  labels:
+    dynamic: "true"
+    perf: "true"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - pullRequest:
+        gitlab:
+          project: '{{ $.Values.dynamic_stands.gitlab_project_id }}'
+          api: '{{ $.Values.dynamic_stands.gitlab_api_url }}'
+          tokenRef:
+            secretName: '{{ $.Values.dynamic_stands.tokenRef.secretName }}'
+            key: '{{ $.Values.dynamic_stands.tokenRef.key }}'
+          labels:
+          - stateful/postgres-{{ $v }}
+          pullRequestState: opened
+        requeueAfterSeconds: {{ $.Values.dynamic_stands.requeueAfterSeconds }}
+        filters:
+          - branchMatch: "^perf/.*"
+  template:
+    metadata:
+      name: 'stateful-{{ `{{ regexReplaceAll "/|_|\\." (.branch | substr 5 20 | lower) "-" | trimSuffix "-" }}` }}-postgres-{{ $v }}'
+      labels:
+        branch: '{{ `{{ .branch_slug }}` }}'
+        dynamic: "true"
+        perf: "true"
+    spec:
+      source:
+        repoURL: '{{ $.Values.dynamic_stands.extraCharts.postgres_perf.repoURL }}'
+        path: .
+        targetRevision: '{{ $.Values.dynamic_stands.extraCharts.postgres_perf.targetRevision }}'
+        helm:
+          valuesObject:
+            dnsSuffix: '{{ $.Values.dns_suffix }}'
+            epic: '{{ `-{{ regexReplaceAll "/|_|\\." (.branch | substr 5 20 | lower) "-" | trimSuffix "-" }}` }}-perf'
+            patroniCluster: '{{ $v }}'
+          valueFiles:
+            {{- range $.Values.dynamic_stands.extraCharts.postgres.extraValuesFiles }}
+            - {{ . }}
+            {{- end }}
+      project: dynamic
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'stateful-{{ `{{ regexReplaceAll "/|_|\\." (.branch | substr 5 20 | lower) "-" | trimSuffix "-" }}` }}-perf'
+      syncPolicy:
+        automated:
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+{{- end }}
+{{- end }}

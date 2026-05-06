@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argo-config
+  namespace: argocd
+spec:
+  destination:
+    namespace: argocd
+    server: https://kubernetes.default.svc
+  project: argocd
+  source:
+    helm:
+      valueFiles:
+        - values.yaml
+        - clusters/kube01001/common.yaml
+        - clusters/kube01001/is.yaml
+        - clusters/kube01001/rbac.yaml
+    path: .
+    repoURL: https://codefest.example/cd-tools/argo-config.git
+    targetRevision: master
+  syncPolicy:
+    automated:
+      selfHeal: true

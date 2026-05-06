@@ -1,0 +1,4 @@
+# Общие параметры для всех приложений
+common:
+  env: &common_envs
+    ENV_SYSTEM_NAME: "ECOM"

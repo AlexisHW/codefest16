@@ -1,0 +1,54 @@
+{{- if not (empty .Values.fest_dynamic_perf_products) }}
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: dynamic-perf-base-stateful
+  labels:
+    dynamic: "true"
+    perf: "true"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - pullRequest:
+        gitlab:
+          project: '{{ $.Values.dynamic_stands.gitlab_project_id }}'
+          api: '{{ $.Values.dynamic_stands.gitlab_api_url }}'
+          tokenRef:
+            secretName: '{{ $.Values.dynamic_stands.tokenRef.secretName }}'
+            key: '{{ $.Values.dynamic_stands.tokenRef.key }}'
+          pullRequestState: opened
+        requeueAfterSeconds: {{ $.Values.dynamic_stands.requeueAfterSeconds }}
+        filters:
+          - branchMatch: "^perf/.*"
+  template:
+    metadata:
+      name: 'dynamic-{{ `{{ regexReplaceAll "/|_|\\." (.branch | substr 5 20 | lower) "-" | trimSuffix "-" }}` }}-perf-base-stateful'
+      labels:
+        branch: '{{ `{{ .branch_slug }}` }}'
+        dynamic: "true"
+        perf: "true"
+    spec:
+      destination:
+        namespace: 'stateful-{{ `{{ regexReplaceAll "/|_|\\." (.branch | substr 5 20 | lower) "-" | trimSuffix "-" }}` }}-perf'
+        server: https://kubernetes.default.svc
+      project: 'dynamic'
+      source:
+        repoURL: '{{ $.Values.dynamic_stands.extraCharts.common.repoURL }}'
+        targetRevision: '{{ $.Values.dynamic_stands.extraCharts.common.targetRevision }}'
+        path: ./stateful
+        helm:
+          valuesObject:
+            epic: '{{ `-{{ regexReplaceAll "/|_|\\." (.branch | substr 5 20 | lower) "-" | trimSuffix "-" }}` }}-perf'
+            esoMountPath: '{{ $.Values.dynamic_stands.eso.mountPath }}'
+            esoVaultUrl: '{{ $.Values.dynamic_stands.eso.vaultUrl }}'
+            kube_name: '{{ $.Values.kube_name }}'
+            environment_name: '{{ $.Values.environment_name }}'
+            company: '{{ $.Values.company }}'
+            department: '{{ $.Values.department }}'
+            regcred_vault_path: '{{ $.Values.regcred_vault_path }}'
+            docker_registry_host: '{{ $.Values.docker_registry_host }}'
+      syncPolicy:
+        automated:
+          selfHeal: true
+{{- end }}

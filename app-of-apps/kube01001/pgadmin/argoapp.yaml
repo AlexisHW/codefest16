@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pgadmin
+  namespace: argocd
+spec:
+  destination:
+    namespace: postgresql
+    server: https://kubernetes.default.svc
+  project: postgresql
+  source:
+    helm:
+      valueFiles:
+        - values.yaml
+        - development/kube01001/values.yaml
+    path: pgadmin
+    repoURL: https://codefest.example/cd-tools/helm-infra.git
+    targetRevision: master
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

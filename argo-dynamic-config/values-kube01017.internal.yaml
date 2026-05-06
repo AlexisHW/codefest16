@@ -1,0 +1,37 @@
+dns_suffix: "app.kube01017.internal"
+kube_name: "kube01017"
+environment_name: "test"
+company: mm
+department: development
+argocd_url: https://argocd-kube01017.codefest.example
+istio:
+  enabled: true
+
+dynamic_stands:
+  gitlab_api_url: https://codefest.example/
+  gitlab_project_id: '10024'
+  appGitRepo: https://codefest.example/ecom/cicd/mm/helm.git
+  eso:
+    vaultUrl: https://secure-vault.codefest.example
+    mountPath: kubernetes_kube01017
+  extraCharts:
+    postgres:
+      extraValuesFiles:
+        - values-kube01017.yaml
+    kafka:
+      extraValuesFiles:
+        - values-kube01017.yaml
+    kafka_ui:
+      extraValuesFiles:
+        - values-kube01017.yaml
+    dfdbop:
+      extraValuesFiles:
+        - values-kube01017.yaml
+    pgop:
+      extraValuesFiles:
+        - values-kube01017.yaml
+
+fest_dynamic_products:
+  product1: {}
+  product2: {}
+  product3: {}

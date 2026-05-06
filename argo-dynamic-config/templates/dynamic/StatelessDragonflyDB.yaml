@@ -1,0 +1,66 @@
+{{- if not (empty .Values.fest_dynamic_products) }}
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: dynamic-stateless-dfdb
+  labels:
+    dynamic: "true"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+  - pullRequest:
+      gitlab:
+        project: '{{ $.Values.dynamic_stands.gitlab_project_id }}'
+        api: '{{ $.Values.dynamic_stands.gitlab_api_url }}'
+        tokenRef:
+          secretName: '{{ $.Values.dynamic_stands.tokenRef.secretName }}'
+          key: '{{ $.Values.dynamic_stands.tokenRef.key }}'
+        labels:
+        - stateless/dfdbop
+        pullRequestState: opened
+      requeueAfterSeconds: {{ $.Values.dynamic_stands.requeueAfterSeconds }}
+      filters:
+        - branchMatch: "^dyn/.*"
+  template:
+    metadata:
+      name: 'stateless-{{ `{{ regexReplaceAll "/|_|\\." (.branch | substr 4 19 | lower) "-" | trimSuffix "-" }}` }}-dfdbop'
+      labels:
+        branch: '{{ `{{ .branch_slug }}` }}'
+        dynamic: "true"
+        type: "dragonflydb"
+    spec:
+      sources:
+        - repoURL: '{{ $.Values.dynamic_stands.extraCharts.dfdbop.repoURL }}'
+          path: .
+          targetRevision: '{{ $.Values.dynamic_stands.extraCharts.dfdbop.targetRevision }}'
+          helm:
+            valuesObject:
+              dnsSuffix: '{{ $.Values.dns_suffix }}'
+              epic: '{{ `-{{ regexReplaceAll "/|_|\\." (.branch | substr 4 19 | lower) "-" | trimSuffix "-" }}` }}'
+              product: '{{ `{{- $products := list -}}{{- range $label := .labels -}}
+                {{- if hasPrefix "product/" $label -}}
+                  {{- $products = append $products (trimPrefix "product/" $label) -}}
+                {{- end -}}
+                {{- end -}}
+                {{- if gt (len $products) 0 -}}
+                  {{ join "," $products -}}
+                {{- end -}}` }}'
+            valueFiles:
+              {{- range $.Values.dynamic_stands.extraCharts.dfdbop.extraValuesFiles }}
+              - {{ . }}
+              {{- end }}
+              - '{{ `$helmValues/stateless/dfdbop/dyn.yaml` }}'
+        - repoURL: '{{ $.Values.dynamic_stands.appGitRepo }}'
+          targetRevision: '{{ `{{ .branch }}` }}'
+          ref: helmValues
+      project: dynamic
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'stateless-{{ `{{ regexReplaceAll "/|_|\\." (.branch | substr 4 19 | lower) "-" | trimSuffix "-" }}` }}'
+      syncPolicy:
+        automated:
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+{{- end }}

@@ -1,0 +1,59 @@
+{{- $values := .Values -}}
+{{- range $k, $v := .Values.fest_dynamic_products }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: dynamic-{{ $k }}-base-product
+  labels:
+    dynamic: "true"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - pullRequest:
+        gitlab:
+          project: '{{ $.Values.dynamic_stands.gitlab_project_id }}'
+          api: '{{ $.Values.dynamic_stands.gitlab_api_url }}'
+          tokenRef:
+            secretName: '{{ $.Values.dynamic_stands.tokenRef.secretName }}'
+            key: '{{ $.Values.dynamic_stands.tokenRef.key }}'
+          labels:
+          - product/{{ $k }}
+          pullRequestState: opened
+        requeueAfterSeconds: {{ $.Values.dynamic_stands.requeueAfterSeconds }}
+        filters:
+          - branchMatch: "^dyn/.*"
+  template:
+    metadata:
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: .
+      name: '{{ $k }}-{{ `{{ regexReplaceAll "/|_|\\." (.branch | substr 4 19 | lower) "-" | trimSuffix "-" }}` }}-base-product'
+      labels:
+        branch: '{{ `{{ .branch_slug }}` }}'
+        dynamic: "true"
+    spec:
+      destination:
+        namespace: '{{ $k }}-{{ `{{ regexReplaceAll "/|_|\\." (.branch | substr 4 19 | lower) "-" | trimSuffix "-" }}` }}'
+        server: https://kubernetes.default.svc
+      project: 'dynamic'
+      source:
+        repoURL: '{{ $.Values.dynamic_stands.extraCharts.common.repoURL }}'
+        targetRevision: '{{ $.Values.dynamic_stands.extraCharts.common.targetRevision }}'
+        path: ./product
+        helm:
+          valuesObject:
+            epic: '{{ `-{{ regexReplaceAll "/|_|\\." (.branch | substr 4 19 | lower) "-" | trimSuffix "-" }}` }}'
+            product: '{{ $k }}'
+            esoMountPath: '{{ $.Values.dynamic_stands.eso.mountPath }}'
+            esoVaultUrl: '{{ $.Values.dynamic_stands.eso.vaultUrl }}'
+            kube_name: '{{ $.Values.kube_name }}'
+            environment_name: '{{ $.Values.environment_name }}'
+            company: '{{ $.Values.company }}'
+            department: '{{ $.Values.department }}'
+            regcred_vault_path: '{{ $.Values.regcred_vault_path }}'
+            docker_registry_host: '{{ $.Values.docker_registry_host }}'
+      syncPolicy:
+        automated:
+          selfHeal: true
+{{- end }}

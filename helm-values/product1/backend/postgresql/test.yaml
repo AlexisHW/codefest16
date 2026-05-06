@@ -1,0 +1,3 @@
+chartVersion: release/0.0.2
+chartRepo: https://codefest.example/cicd/templates/helm-postgres-operator.git
+chartPath: helm-pgop

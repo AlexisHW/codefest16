@@ -1,0 +1,74 @@
+{{- $values := .Values -}}
+{{- range $k, $v := .Values.fest_dynamic_perf_products }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: dynamic-perf-{{ $k }}
+  labels:
+    dynamic: "true"
+    perf: "true"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - pullRequest:
+              gitlab:
+                project: '{{ $.Values.dynamic_stands.gitlab_project_id }}'
+                api: '{{ $.Values.dynamic_stands.gitlab_api_url }}'
+                tokenRef:
+                  secretName: '{{ $.Values.dynamic_stands.tokenRef.secretName }}'
+                  key: '{{ $.Values.dynamic_stands.tokenRef.key }}'
+                labels:
+                - product/{{ $k }}
+                pullRequestState: opened
+              requeueAfterSeconds: {{ $.Values.dynamic_stands.requeueAfterSeconds }}
+              filters:
+                - branchMatch: "^perf/.*"
+          - git:
+              files:
+              - path: {{ $k }}/*/argocd-config.yaml
+              {{- if not (eq $values.environment_name "prod") }}
+              - path: {{ $k }}/*/argocd-config-test.yaml
+              {{- end }}
+              repoURL: '{{ $.Values.dynamic_stands.appGitRepo }}'
+              revision: '{{ `{{ .branch }}` }}'
+  ignoreApplicationDifferences:
+    - jsonPointers:
+        - /spec/sources/0/helm/parameters
+  template:
+    metadata:
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: .
+      name: '{{ $k }}-{{ `{{ regexReplaceAll "/|_|\\." (.branch | substr 5 20 | lower) "-" | trimSuffix "-" }}` }}-{{ `{{ index .path.segments 1 }}` }}'
+      labels:
+        branch: '{{ `{{ .branch_slug }}` }}'
+        dynamic: "true"
+        perf: "true"
+    spec:
+      destination:
+        namespace: '{{ $k }}-{{ `{{ regexReplaceAll "/|_|\\." (.branch | substr 5 20 | lower) "-" | trimSuffix "-" }}` }}-perf'
+        server: https://kubernetes.default.svc
+      project: 'dynamic'
+      sources:
+      - helm:
+          valuesObject:
+            dnsSuffix: '{{ $values.dns_suffix }}'
+            istioEnabled: {{ $values.istio.enabled }}
+            ecomName: '{{ `{{ .path.basename }}` }}'
+            epic: '{{ `-{{ regexReplaceAll "/|_|\\." (.branch | substr 5 20 | lower) "-" | trimSuffix "-" }}` }}-perf'
+          valueFiles:
+          - '{{ `$helmValues/{{ .path.path }}/values.yaml` }}'
+          - '{{ `$helmValues/{{ .path.path }}/perf.yaml` }}'
+        path: '{{ `{{ .chartPath }}` }}'
+        repoURL: '{{ `{{ .chartRepo }}` }}'
+        targetRevision: '{{ `{{ .chartVersion }}` }}'
+      - ref: helmValues
+        repoURL: '{{ $.Values.dynamic_stands.appGitRepo }}'
+        targetRevision: '{{ `{{ .branch }}` }}'
+      syncPolicy:
+        automated:
+          selfHeal: true
+{{- end }}
