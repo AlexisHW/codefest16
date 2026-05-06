@@ -1,0 +1,13 @@
+{{ range $i := until (int .Values.clusters_shard_count) }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cluster-{{ $i }}
+  namespace: argocd
+  labels:
+    type: argocd-workaround
+spec:
+  type: ExternalName
+  externalName: {{ $.Values.service.externalName }}
+{{ end }}

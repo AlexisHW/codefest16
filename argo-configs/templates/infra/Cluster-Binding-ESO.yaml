@@ -1,0 +1,19 @@
+# this ClusterRoleBinding needed for older k8s to review tokens
+# Delete after laptev upgrade
+{{- if .Values.eso_sa_binding -}}
+{{- range $key, $val := .Values.fest_infra }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: role-tokenreview-binding-{{ $key }}
+subjects:
+  - kind: ServiceAccount
+    name: sa-{{ $key }}-{{ $.Values.environment_name }}-eso
+    namespace: {{ $key }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+{{- end }}
+{{- end }}

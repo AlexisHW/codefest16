@@ -1,0 +1,74 @@
+{{- $values := .Values -}}
+{{- range $k, $v := .Values.fest_products }}
+{{- if not $v.disableAppSet }}
+{{- if $v.autotests }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: {{ $k }}{{ if $v.integration }}-integration{{ end }}-autotests
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: {{ $values.applicationSetConfig.valuesRepoURL }}
+        revision: {{ $values.applicationSetConfig.revision }}
+        files:
+          - path: {{ $k }}/*/argocd-config-autotests.yaml
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  ignoreApplicationDifferences:
+    - jsonPointers:
+        - /spec/source/targetRevision
+        - /spec/syncPolicy
+  template:
+    metadata:
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: '{{ `/{{ .path.path }}` }}'
+      name: '{{ `{{ index .path.segments 0 }}` }}{{ if $v.integration }}-integration{{ end }}{{ `-{{ .path.basename }}` }}'
+      labels:
+        product: "true"
+        autotests: "true"
+    spec:
+      destination:
+        namespace: '{{ `{{ index .path.segments 0 }}` }}{{ if $v.integration }}-integration{{ end }}'
+        {{- if (eq $values.kube_name "kube01001") }}
+        server: https://cluster-{{ randNumeric 1 }}.argocd.svc
+        {{- else }}
+        server: https://kubernetes.default.svc
+        {{- end }}
+      project: '{{ `{{ index .path.segments 0 }}` }}'
+      sources:
+        - repoURL: '{{ `{{ .chartRepo }}` }}'
+          targetRevision: '{{ `{{ .chartVersion }}` }}'
+          path: '{{ `{{ .chartPath }}` }}'
+          helm:
+            valueFiles:
+              - '{{ `$helmValues/{{ .path.path }}/values.yaml` }}'
+            {{- range $values.applicationSetConfig.valueFiles }}
+              - '{{ `$helmValues/{{ .path.path }}/` }}{{ . }}'
+            {{- end }}
+            valuesObject:
+              codefestName: '{{ `{{ .path.basename }}` }}'
+              dnsSuffix: {{ $values.dns_suffix }}
+              istioEnabled: {{ $values.istio.enabled }}
+              epic: '{{ if $v.integration }}-integration{{ end }}'
+        - repoURL: {{ $values.applicationSetConfig.valuesRepoURL }}
+          targetRevision: {{ $values.applicationSetConfig.revision }}
+          ref: helmValues
+      {{- if or (not $v.disableAutoSync) $values.applicationSetConfig.applyOutOfSyncOnly }}
+      syncPolicy:
+        {{- if not $v.disableAutoSync }}
+        automated:
+          selfHeal: true
+        retry: {}
+        {{- end }}
+        {{- if $values.applicationSetConfig.applyOutOfSyncOnly }}
+        syncOptions:
+          - ApplyOutOfSyncOnly=true
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

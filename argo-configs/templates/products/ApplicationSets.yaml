@@ -1,0 +1,64 @@
+{{- $values := .Values -}}
+{{- range $k, $v := .Values.fest_products }}
+{{- if not $v.disableAppSet }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: {{ $k }}{{ if $v.integration }}-integration{{ end }}
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: {{ $values.applicationSetConfig.valuesRepoURL }}
+        revision: {{ $values.applicationSetConfig.revision }}
+        files:
+          - path: {{ $k }}/*/argocd-config.yaml
+          {{- if not (eq $values.environment_name "prod") }}
+          - path: {{ $k }}/*/argocd-config-{{ $values.environment_name }}.yaml
+          {{- end }}
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  ignoreApplicationDifferences:
+    - jsonPointers:
+        - /spec/source/targetRevision
+        - /spec/syncPolicy/automated
+        - /spec/sources/0/helm/parameters
+  template:
+    spec:
+      destination:
+        namespace: '{{ `{{ index .path.segments 0 }}` }}'
+        server: https://kubernetes.default.svc
+      project: '{{ `{{ index .path.segments 0 }}` }}'
+      sources:
+        - repoURL: '{{ `{{ .chartRepo }}` }}'
+          targetRevision: '{{ `{{ .chartVersion }}` }}'
+          path: '{{ `{{ .chartPath }}` }}'
+          helm:
+            valueFiles:
+              - '{{ `$helmValues/{{ .path.path }}/values.yaml` }}'
+            {{- range $values.applicationSetConfig.valueFiles }}
+              - '{{ `$helmValues/{{ .path.path }}/` }}{{ . }}'
+            {{- end }}
+            valuesObject:
+              codefestName: '{{ `{{ .path.basename }}` }}'
+              dnsSuffix: {{ $values.dns_suffix }}
+              istioEnabled: {{ $values.istio.enabled }}
+              epic: '{{ if $v.integration }}-integration{{ end }}'
+        - repoURL: {{ $values.applicationSetConfig.valuesRepoURL }}
+          targetRevision: {{ $values.applicationSetConfig.revision }}
+          ref: helmValues
+      {{- if or (not $v.disableAutoSync) $values.applicationSetConfig.applyOutOfSyncOnly }}
+      syncPolicy:
+        {{- if not $v.disableAutoSync }}
+        automated:
+          selfHeal: true
+        {{- end }}
+        {{- if $values.applicationSetConfig.applyOutOfSyncOnly }}
+        syncOptions:
+          - ApplyOutOfSyncOnly=true
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}

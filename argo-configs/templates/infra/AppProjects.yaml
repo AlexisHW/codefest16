@@ -1,0 +1,19 @@
+{{- range $key, $val := .Values.fest_infra }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: {{ $key }}
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  sourceRepos:
+    - '*'
+  destinations:
+    - namespace: '*'
+      server: '*'
+{{- if $val.clusterResourceWhitelist }}
+  clusterResourceWhitelist:
+{{- $val.clusterResourceWhitelist | toYaml | nindent 4 }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,9 @@
+rbac_extended:
+  namespace_admin:
+    airflow:
+      groups:
+        - kube-data-pv
+  namespace_view:
+    apicurio-registry:
+      groups:
+        - kube-support-pv

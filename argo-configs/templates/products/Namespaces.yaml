@@ -1,0 +1,8 @@
+{{- $values := .Values -}}
+{{- range $key, $val := .Values.fest_products }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $key }}{{ if $val.integration }}-integration{{ end }}
+{{- end }}

@@ -1,0 +1,16 @@
+fest_infra:
+  elasticsearch-haproxy:
+    clusterResourceWhitelist:
+      - group: '*'
+        kind: PersistentVolume
+  harbor: {}
+  postgresql: {}
+
+fest_products:
+  product1: {}
+  product2:
+    disableAutoSync: true
+    disableAppSet: true
+  product3:
+    disableAutoSync: true
+    disableAppSet: true

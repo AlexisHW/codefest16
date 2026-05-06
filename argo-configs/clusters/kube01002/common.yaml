@@ -1,0 +1,35 @@
+dns_suffix: "app.kube01002.internal"
+vault_url: https://vault.codefest.example
+vault_mountPath: kubernetes_kube01002
+environment_name: prod
+company: codefest
+department: development
+kube_name: kube01002
+regcred_vault_path: dev/shared/registry/harbor/dockerconfig
+regcred_infra_vault_path: infra/shared/registry/harbor
+argocd_url: https://argocd-kube01002.codefest.example
+
+git:
+  credTpl:
+    username: argo01002
+    passwdVaultPath: infra/argocd/cred-template/kube01002/prod
+
+gitlab_secrets:
+  username: kube01002
+  path: infra/argocd/repo-creds/kube01002/prod
+
+gitlab_repos:
+  kubernetes:
+    url: https://codefest.example/devops/kubernetes.git
+  helm-infra-codefest:
+    url: https://codefest.example/devops/helm-infra.git
+  helm:
+    url: https://codefest.example/cicd/helm.git
+  helm-codefest:
+    url: https://codefest.example/devops/helm.git
+
+applicationSetConfig:
+  valueFiles:
+    - prod.yaml
+  valuesRepoURL: https://codefest.example/cicd/helm.git
+  revision: master

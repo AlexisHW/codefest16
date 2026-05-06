@@ -1,0 +1,48 @@
+{{- if eq .Values.environment_name "test" -}}
+# RBAC для namespace'ов продуктов(fest_products), на текущий момент работает только для test сред
+{{- $values := .Values -}}
+{{- range $key, $val := $values.fest_products }}
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ $key }}-base
+  namespace: {{ $key }}{{ if $val.integration }}-integration{{ end }}
+rules:
+  - apiGroups: ["", "extensions", "apps", "networking.k8s.io"]
+    resources: ["*"]
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - '*'
+    resources:
+      - pods
+      - pods/portforward
+      - pods/log
+      - pods/exec
+    verbs:
+      - get
+      - list
+      - create
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ $key }}-base
+  namespace: {{ $key }}{{ if $val.integration }}-integration{{ end }}
+subjects:
+  - kind: Group
+    name: acl_argo_{{ $values.kube_name }}_{{ $values.environment_name }}_user
+  - kind: Group
+    name: acl_argo_{{ $values.kube_name }}_{{ $values.environment_name }}_ops
+  - kind: Group
+    name: acl_argo_{{ $values.kube_name }}_{{ $values.environment_name }}_admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $key }}-base
+{{- end -}}
+{{- end }}

@@ -1,0 +1,85 @@
+{{- if eq .Values.environment_name "test" -}}
+# RBAC для namespace'ов инфраструктуры(fest_infra), на текущий момент работает только для test сред
+# пользователям из группы *_user выдаются права на get, list, port-forward
+# пользователям из групп *_ops, *_admin дополнительно разрешен exec
+{{- $values := .Values -}}
+{{- range $key, $val := $values.fest_infra }}
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ $key }}-user
+  namespace: {{ $key }}
+rules:
+  - apiGroups: ["", "extensions", "apps", "networking.k8s.io"]
+    resources: ["*"]
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - '*'
+    resources:
+      - pods
+      - pods/portforward
+      - pods/log
+    verbs:
+      - get
+      - list
+      - create
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ $key }}-user
+  namespace: {{ $key }}
+subjects:
+  - kind: Group
+    name: acl_argo_{{ $values.kube_name }}_{{ $values.environment_name }}_user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $key }}-user
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ $key }}-admin
+  namespace: {{ $key }}
+rules:
+  - apiGroups: ["", "extensions", "apps", "networking.k8s.io"]
+    resources: ["*"]
+    verbs:
+      - get
+      - list
+      - watch
+      - pods/exec
+  - apiGroups:
+      - '*'
+    resources:
+      - pods
+      - pods/portforward
+      - pods/log
+    verbs:
+      - get
+      - list
+      - create
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ $key }}-admin
+  namespace: {{ $key }}
+subjects:
+  - kind: Group
+    name: acl_argo_{{ $values.kube_name }}_{{ $values.environment_name }}_ops
+  - kind: Group
+    name: acl_argo_{{ $values.kube_name }}_{{ $values.environment_name }}_admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $key }}-admin
+{{- end -}}
+{{- end }}

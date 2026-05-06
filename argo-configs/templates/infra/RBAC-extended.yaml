@@ -1,0 +1,66 @@
+{{- $rbac_admin := .Values.rbac_extended.namespace_admin }}
+{{- range $namespace, $groups := $rbac_admin }}
+{{- if not (empty $groups.groups) }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: namespace-admin
+  namespace: {{ $namespace }}
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $namespace }}-namespace-admin-groups
+  namespace: {{ $namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: namespace-admin
+subjects:
+{{- range $group := $groups.groups }}
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: {{ $group }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- $rbac_view := .Values.rbac_extended.namespace_view }}
+{{- range $namespace, $groups := $rbac_view }}
+{{- if not (empty $groups.groups) }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: namespace-view
+  namespace: {{ $namespace }}
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $namespace }}-namespace-view-groups
+  namespace: {{ $namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: namespace-view
+subjects:
+{{- range $group := $groups.groups }}
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: {{ $group }}
+{{- end }}
+{{- end }}
+{{- end }}

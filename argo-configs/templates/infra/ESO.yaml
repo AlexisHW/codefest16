@@ -1,0 +1,28 @@
+{{- range $key, $val := .Values.fest_infra }}
+{{- if not $val.disableESO }}
+---
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: {{ $key }}-secret-store
+  namespace: {{ $key }}
+spec:
+  provider:
+    vault:
+      auth:
+        kubernetes:
+          mountPath: {{ $.Values.vault_mountPath }}
+          role: {{ $.Values.infra_company | default $.Values.company }}_infrastructure_{{ $key }}_{{ $.Values.environment_name }}
+          serviceAccountRef:
+            name: sa-{{ $key }}-{{ $.Values.environment_name }}-eso
+      path: codefest
+      server: {{ $.Values.vault_url }}
+      version: v2
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sa-{{ $key }}-{{ $.Values.environment_name }}-eso
+  namespace: {{ $key }}
+{{- end }}
+{{- end }}

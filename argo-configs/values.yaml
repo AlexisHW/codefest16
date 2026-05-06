@@ -1,0 +1,158 @@
+istio:
+  enabled: true
+
+appProject_defaults:
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: PersistentVolume
+  sourceRepos:
+    - '*'
+  destinations:
+    - namespace: '*'
+      server: '*'
+
+fest_products: {}
+
+fest_infra:
+  argocd:
+    clusterResourceWhitelist:
+      - group: '*'
+        kind: '*'
+  ingress-nginx:
+    clusterResourceWhitelist:
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRoleBinding
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRole
+      - group: admissionregistration.k8s.io
+        kind: ValidatingWebhookConfiguration
+      - group: networking.k8s.io
+        kind: IngressClass
+  istio-ingress:
+    clusterResourceWhitelist:
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRoleBinding
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRole
+      - group: admissionregistration.k8s.io
+        kind: ValidatingWebhookConfiguration
+      - group: gateway.networking.k8s.io
+        kind: GatewayClass
+  istio-tls-ingress:
+    disableESO: true
+    clusterResourceWhitelist:
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRoleBinding
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRole
+      - group: admissionregistration.k8s.io
+        kind: ValidatingWebhookConfiguration
+      - group: gateway.networking.k8s.io
+        kind: GatewayClass
+  logntrace:
+    clusterResourceWhitelist:
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRoleBinding
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRole
+  monitoring: {}
+  opensearch:
+    clusterResourceWhitelist:
+      - group: apiextensions.k8s.io
+        kind: CustomResourceDefinition
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRoleBinding
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRole
+      - group: scheduling.k8s.io
+        kind: PriorityClass
+      - group: admissionregistration.k8s.io
+        kind: ValidatingWebhookConfiguration
+      - group: cert-manager.io
+        kind: Issuer
+      - group: cert-manager.io
+        kind: Certificate
+      - group: ''
+        kind: Namespace
+  elasticsearch:
+    clusterResourceWhitelist:
+      - group: admissionregistration.k8s.io
+        kind: ValidatingWebhookConfiguration
+      - group: apiextensions.k8s.io
+        kind: CustomResourceDefinition
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRoleBinding
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRole
+      - group: scheduling.k8s.io
+        kind: PriorityClass
+  postgresql-haproxy: {}
+  apicurio: {}
+  postgresql:
+    clusterResourceWhitelist:
+      - group: apiextensions.k8s.io
+        kind: CustomResourceDefinition
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRoleBinding
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRole
+      - group: scheduling.k8s.io
+        kind: PriorityClass
+      - group: ''
+        kind: Namespace
+  keydbop:
+    disableESO: true
+    clusterResourceWhitelist:
+      - group: apiextensions.k8s.io
+        kind: CustomResourceDefinition
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRoleBinding
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRole
+      - group: ''
+        kind: Namespace
+  keydb: {}
+  dragonflydb:
+    clusterResourceWhitelist:
+      - group: apiextensions.k8s.io
+        kind: CustomResourceDefinition
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRoleBinding
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRole
+      - group: ''
+        kind: Namespace
+
+applicationSetConfig:
+  revision: master
+
+# You can disable repos in kube value files or override urls
+gitlab_repos:
+  argo-config:
+    url: https://codefest.example/cd-tools/argo-config.git
+
+# You have to override these values in kube value files
+gitlab_secrets:
+  username: ""
+  path: ""
+
+git:
+  credTpl:
+    username: ""
+    passwdVaultPath: ""
+    templateList:
+      cicd-common:
+        urlPrefix: https://codefest.example/codefest/cicd/common
+
+rbac_extended:
+  namespace_view: {}
+  namespace_admin:
+    argocd:
+      groups:
+      - kube-cicd-pv
+  apis:
+    kafka.strimzi.io:
+      resources: '["*"]'
+      verbs: '["get", "list", "watch", "patch", "update"]'
+      groups:
+      - kube-db-pv

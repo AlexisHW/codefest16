@@ -1,0 +1,32 @@
+{{- $apis := .Values.rbac_extended.apis }}
+{{- range $product, $value := .Values.fest_products }}
+{{- range $api, $params := $apis }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: manage-{{ $api }}-{{ $product }}
+  namespace: {{ $product }}{{ if $value.integration }}-integration{{ end }}
+rules:
+  - apiGroups: ["{{$api}}"]
+    resources: {{ $params.resources }}
+    verbs: {{ $params.verbs }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: manage-{{ $api }}-groups-{{ $product }}
+  namespace: {{ $product }}{{ if $value.integration }}-integration{{ end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: manage-{{ $api }}-{{ $product }}
+subjects:
+{{- range $group := $params.groups }}
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: {{ $group }}
+{{- end }}
+{{- end }}
+{{- end }}
+

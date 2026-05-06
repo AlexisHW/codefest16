@@ -1,0 +1,18 @@
+fest_infra:
+  flink-operator:
+    disableESO: true
+  gitlab: {}
+  opensearch-haproxy:
+    clusterResourceWhitelist:
+      - group: '*'
+        kind: PersistentVolume
+  postgresql-haproxy:
+    clusterResourceWhitelist:
+      - group: '*'
+        kind: PersistentVolume
+
+
+fest_products:
+  product1: {}
+  product2:
+    disableAutoSync: true
